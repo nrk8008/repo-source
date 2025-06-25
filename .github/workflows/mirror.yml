@@ -1,0 +1,43 @@
+name: Mirror to repo-target (Exclude workflow)
+
+on:
+  push:
+    branches:
+      - main
+  delete:
+    branches:
+      - '**'
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo-source
+        uses: actions/checkout@v3
+
+      - name: Clone repo-target using SSH
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          git clone git@github.com:nrk8008/repo-target.git target-repo
+
+      - name: Rsync files (excluding mirror workflow)
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github/workflows/mirror.yml' \
+            ./ target-repo/
+
+      - name: Commit & Push to repo-target
+        run: |
+          cd target-repo
+          git add .
+          git commit -m "Mirror update from repo-source" || echo "No changes to commit"
+          git push origin main
