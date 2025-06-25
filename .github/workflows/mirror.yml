@@ -1,4 +1,4 @@
-name: Mirror to repo-target (with deletions)
+name: Mirror to repo-target (with accurate sync and deletions)
 
 on:
   push:
@@ -28,16 +28,20 @@ jobs:
 
           git clone git@github.com:nrk8008/repo-target.git target-repo
 
-      - name: Sync files to target-repo (preserve deletions)
+      - name: Sync files to target-repo (exclude mirror workflow)
         run: |
           rsync -av --delete \
             --exclude='.git' \
             --exclude='.github/workflows/mirror.yml' \
-            ./ target-repo/
+            "$GITHUB_WORKSPACE"/ target-repo/
 
       - name: Commit and push changes
         run: |
           cd target-repo
-          git add -A  # IMPORTANT: include deletions
-          git diff-index --quiet HEAD || git commit -m "Mirror update from repo-source"
-          git push origin main
+          git add -A  # Stage deletions too
+          if ! git diff --cached --quiet; then
+            git commit -m "Mirror update from repo-source"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
