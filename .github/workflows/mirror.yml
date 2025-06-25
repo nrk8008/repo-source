@@ -1,4 +1,4 @@
-name: Mirror to repo-target (with accurate sync and deletions)
+name: Mirror to repo-target (Final Fixed)
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repo-source
         uses: actions/checkout@v3
 
-      - name: Set up SSH and clone repo-target
+      - name: Setup SSH and clone repo-target (outside workspace)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -26,19 +26,19 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          git clone git@github.com:nrk8008/repo-target.git target-repo
+          git clone git@github.com:nrk8008/repo-target.git ../repo-target
 
-      - name: Sync files to target-repo (exclude mirror workflow)
+      - name: Rsync files (exclude workflow file)
         run: |
           rsync -av --delete \
             --exclude='.git' \
             --exclude='.github/workflows/mirror.yml' \
-            "$GITHUB_WORKSPACE"/ target-repo/
+            ./ ../repo-target/
 
-      - name: Commit and push changes
+      - name: Commit and push changes to repo-target
         run: |
-          cd target-repo
-          git add -A  # Stage deletions too
+          cd ../repo-target
+          git add -A
           if ! git diff --cached --quiet; then
             git commit -m "Mirror update from repo-source"
             git push origin main
