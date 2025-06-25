@@ -1,4 +1,4 @@
-name: Mirror to repo-target (Final Fixed)
+name: Mirror to repo-target
 
 on:
   push:
